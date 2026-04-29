@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ParkControl – Sistema de Parqueadero</title>
+  <meta name="description" content="Sistema Web para Control de Parqueadero – SENA NODO TIC">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🅿</text></svg>">
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+
+<!-- ── LOGIN ──────────────────────────────────────────────────────────────── -->
+<div id="login-screen">
+  <div class="login-wrap">
+    <div class="login-bg-grid"></div>
+    <div class="login-bg-glow"></div>
+    <div class="login-card">
+      <div class="login-logo">
+        <span class="login-logo-park">PARK</span><span class="login-logo-ctrl">CONTROL</span>
+      </div>
+      <div class="login-sub">Sistema Web de Parqueadero · SENA NODO TIC</div>
+
+      <div id="login-alert"></div>
+
+      <div class="field" style="margin-bottom:16px">
+        <label>Correo electrónico</label>
+        <input type="email" id="login-email" placeholder="correo@ejemplo.com" autocomplete="email">
+      </div>
+      <div class="field" style="margin-bottom:24px">
+        <label>Contraseña</label>
+        <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password">
+      </div>
+
+      <button id="login-btn" class="btn btn-primary btn-full" onclick="doLogin()">
+        Iniciar sesión →
+      </button>
+
+      <div class="login-hint">
+        <strong>Admin:</strong> admin@park.com / admin123<br>
+        <strong>Operario:</strong> operario@park.com / op123
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── APP ────────────────────────────────────────────────────────────────── -->
+<div id="app-screen" style="display:none">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="topbar-brand">
+      <span class="topbar-brand-p">PARK</span><span class="topbar-brand-k">CONTROL</span>
+    </div>
+    <div class="topbar-right">
+      <span id="topbar-clock" class="topbar-clock">--:--:--</span>
+      <span id="topbar-user" style="font-size:.82rem;color:var(--muted2)">—</span>
+      <span id="topbar-role" class="role-badge">—</span>
+      <button class="btn btn-ghost btn-sm" onclick="doLogout()">↩ Salir</button>
+    </div>
+  </header>
+
+  <!-- MOBILE TABS -->
+  <div id="mobile-tabs" class="mobile-tabs"></div>
+
+  <div class="layout">
+    <!-- SIDEBAR -->
+    <nav class="sidebar" id="sidebar-nav"></nav>
+
+    <!-- MAIN -->
+    <main class="main">
+
+      <!-- ── DASHBOARD ──────────────────────────────────────────────────── -->
+      <div class="page" id="page-dashboard">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Dashboard</div>
+            <div class="page-sub">Resumen operacional en tiempo real · Actualización cada 15 s</div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="loadDashboard()">↻ Actualizar</button>
+        </div>
+        <div id="dash-alert"></div>
+
+        <div class="grid-4">
+          <div class="kpi kpi-blue">
+            <div class="kpi-label">Autos adentro</div>
+            <div class="kpi-val" id="kpi-cars">—</div>
+            <div class="kpi-sub" id="kpi-cars-sub">de 30 cupos</div>
+          </div>
+          <div class="kpi kpi-amber">
+            <div class="kpi-label">Motos adentro</div>
+            <div class="kpi-val" id="kpi-motos">—</div>
+            <div class="kpi-sub" id="kpi-motos-sub">de 15 cupos</div>
+          </div>
+          <div class="kpi kpi-green">
+            <div class="kpi-label">Ingresos hoy</div>
+            <div class="kpi-val" id="kpi-income">—</div>
+            <div class="kpi-sub">Cobros finalizados</div>
+          </div>
+          <div class="kpi kpi-purple">
+            <div class="kpi-label">Total hoy</div>
+            <div class="kpi-val" id="kpi-total">—</div>
+            <div class="kpi-sub">Entradas registradas</div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="prog-card">
+            <div class="prog-header">
+              <span class="prog-title">🚗 Capacidad Autos</span>
+              <span class="prog-pct" id="prog-cars-pct">—</span>
+            </div>
+            <div class="prog-bar">
+              <div class="prog-fill fill-blue" id="prog-cars-fill" style="width:0%"></div>
+            </div>
+            <div class="prog-legend">
+              <span id="prog-cars-num" style="color:var(--muted2);font-size:.78rem">— / 30 ocupados</span>
+            </div>
+          </div>
+          <div class="prog-card">
+            <div class="prog-header">
+              <span class="prog-title">🏍️ Capacidad Motos</span>
+              <span class="prog-pct" id="prog-motos-pct">—</span>
+            </div>
+            <div class="prog-bar">
+              <div class="prog-fill fill-amber" id="prog-motos-fill" style="width:0%"></div>
+            </div>
+            <div class="prog-legend">
+              <span id="prog-motos-num" style="color:var(--muted2);font-size:.78rem">— / 15 ocupados</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <div class="table-head"><span class="table-title">Vehículos activos en parqueadero</span></div>
+          <div class="table-scroll">
+            <table>
+              <thead><tr>
+                <th>Placa</th><th>Tipo</th><th>Espacio</th><th>Entrada</th><th>Tiempo</th>
+              </tr></thead>
+              <tbody id="dash-table">
+                <tr><td colspan="5" class="td-empty">Cargando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ENTRADA ────────────────────────────────────────────────────── -->
+      <div class="page" id="page-entrada">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Registrar Entrada</div>
+            <div class="page-sub">Ingreso de vehículos al parqueadero</div>
+          </div>
+        </div>
+        <div id="entrada-alert"></div>
+
+        <div class="form-card">
+          <div class="form-card-title">↓ Datos del vehículo</div>
+          <div class="form-grid">
+            <div class="field">
+              <label>Placa del vehículo *</label>
+              <input type="text" id="ent-placa" placeholder="Ej: ABC123" maxlength="10">
+            </div>
+            <div class="field">
+              <label>Tipo de vehículo *</label>
+              <select id="ent-tipo">
+                <option value="">-- Seleccionar tipo --</option>
+                <option value="sedan">🚗 Sedán</option>
+                <option value="camioneta">🚙 Camioneta / SUV</option>
+                <option value="moto">🏍️ Motocicleta</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button id="ent-btn" class="btn btn-primary" onclick="registrarEntrada()">
+              ↓ Registrar entrada
+            </button>
+            <button class="btn btn-ghost" onclick="$('ent-placa').value='';$('ent-tipo').value=''">
+              Limpiar
+            </button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <div class="table-head"><span class="table-title">Vehículos activos</span></div>
+          <div class="table-scroll">
+            <table>
+              <thead><tr>
+                <th>Placa</th><th>Tipo</th><th>Espacio</th><th>Hora entrada</th><th>Estado</th>
+              </tr></thead>
+              <tbody id="entrada-table">
+                <tr><td colspan="5" class="td-empty">Sin registros activos</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SALIDA ──────────────────────────────────────────────────────── -->
+      <div class="page" id="page-salida">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Registrar Salida</div>
+            <div class="page-sub">Cobro y liberación de espacio</div>
+          </div>
+        </div>
+        <div id="salida-alert"></div>
+
+        <div class="form-card">
+          <div class="form-card-title">↑ Buscar vehículo</div>
+          <div class="form-grid">
+            <div class="field">
+              <label>Placa del vehículo *</label>
+              <input type="text" id="sal-placa" placeholder="Ej: ABC123" maxlength="10">
+            </div>
+            <div class="field">
+              <label>Descuento (%)</label>
+              <input type="number" id="sal-desc" value="0" min="0" max="100" placeholder="0">
+            </div>
+            <div class="field" style="justify-content:flex-end">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                <input type="checkbox" id="sal-cortesia" style="width:auto;accent-color:var(--amber)">
+                Aplicar cortesía (costo $0)
+              </label>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button id="sal-buscar-btn" class="btn btn-primary" onclick="buscarSalida()">
+              🔍 Buscar vehículo
+            </button>
+          </div>
+        </div>
+
+        <!-- Preview cobro -->
+        <div id="cobro-preview" style="display:none">
+          <div class="cobro-card">
+            <div style="font-weight:700;margin-bottom:14px;font-size:.9rem;color:var(--amber2)">💰 Resumen de cobro</div>
+            <div id="cobro-detail" class="ticket-paper" style="margin:0 0 16px"></div>
+            <div class="form-actions">
+              <button id="sal-confirm-btn" class="btn btn-success" onclick="confirmarSalida()">
+                ✔ Confirmar cobro y salida
+              </button>
+              <button class="btn btn-ghost" onclick="cancelarSalida()">✖ Cancelar</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-wrap" style="margin-top:8px">
+          <div class="table-head">
+            <span class="table-title">Historial de salidas</span>
+            <button class="btn btn-ghost btn-sm" onclick="loadSalidaHistorial()">↻</button>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead><tr>
+                <th>Placa</th><th>Tipo</th><th>Entrada</th><th>Salida</th><th>Tiempo</th><th>Valor</th>
+              </tr></thead>
+              <tbody id="salida-table">
+                <tr><td colspan="6" class="td-empty">Sin registros</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── CUPOS ───────────────────────────────────────────────────────── -->
+      <div class="page" id="page-cupos">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Control de Cupos</div>
+            <div class="page-sub">Disponibilidad de espacios en tiempo real</div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="loadCupos()">↻ Actualizar</button>
+        </div>
+        <div id="cupos-alert"></div>
+
+        <div class="grid-2" style="margin-bottom:24px">
+          <div class="prog-card">
+            <div class="prog-header">
+              <span class="prog-title">🚗 Autos (Sedán + Camioneta)</span>
+              <span class="prog-pct" id="cupos-cars-pct">—</span>
+            </div>
+            <div class="prog-bar" style="height:12px;margin-bottom:14px">
+              <div class="prog-fill fill-blue" id="cupos-cars-fill" style="width:0%"></div>
+            </div>
+            <div style="display:flex;gap:24px;font-size:.85rem;flex-wrap:wrap">
+              <span>🟢 Disponibles: <strong id="cupos-cars-avail" style="color:var(--green)">—</strong></span>
+              <span>🔴 Ocupados: <strong id="cupos-cars-occ" style="color:var(--red)">—</strong></span>
+            </div>
+            <div id="cupos-cars-num" style="display:none"></div>
+          </div>
+          <div class="prog-card">
+            <div class="prog-header">
+              <span class="prog-title">🏍️ Motos</span>
+              <span class="prog-pct" id="cupos-motos-pct">—</span>
+            </div>
+            <div class="prog-bar" style="height:12px;margin-bottom:14px">
+              <div class="prog-fill fill-amber" id="cupos-motos-fill" style="width:0%"></div>
+            </div>
+            <div style="display:flex;gap:24px;font-size:.85rem;flex-wrap:wrap">
+              <span>🟢 Disponibles: <strong id="cupos-motos-avail" style="color:var(--green)">—</strong></span>
+              <span>🔴 Ocupados: <strong id="cupos-motos-occ" style="color:var(--red)">—</strong></span>
+            </div>
+            <div id="cupos-motos-num" style="display:none"></div>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <div class="form-card-title">🚗 Espacios para Autos</div>
+          <div id="espacios-cars-grid" class="espacios-grid">
+            <div style="color:var(--muted);font-size:.82rem">Cargando...</div>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <div class="form-card-title">🏍️ Espacios para Motos</div>
+          <div id="espacios-motos-grid" class="espacios-grid">
+            <div style="color:var(--muted);font-size:.82rem">Cargando...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── TARIFAS (ADMIN) ─────────────────────────────────────────────── -->
+      <div class="page" id="page-tarifas">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Gestión de Tarifas</div>
+            <div class="page-sub">Configuración de cobros por tipo de vehículo</div>
+          </div>
+        </div>
+        <div id="tar-alert"></div>
+
+        <div class="form-card">
+          <div class="form-card-title">➕ Nueva tarifa</div>
+          <div class="form-grid">
+            <div class="field">
+              <label>Tipo de vehículo *</label>
+              <select id="tar-tipo"></select>
+            </div>
+            <div class="field">
+              <label>Nombre de la tarifa *</label>
+              <input type="text" id="tar-nombre" placeholder="Ej: Tarifa Sedán Día" style="text-transform:none">
+            </div>
+            <div class="field">
+              <label>Tipo de cobro *</label>
+              <select id="tar-cobro">
+                <option value="POR_HORA">Por hora</option>
+                <option value="POR_MINUTO">Por minuto</option>
+                <option value="FRACCION">Fracción (30 min)</option>
+                <option value="POR_DIA">Por día</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Valor base ($) *</label>
+              <input type="number" id="tar-valor" placeholder="Ej: 3500" min="0" style="text-transform:none">
+            </div>
+            <div class="field">
+              <label>Fecha inicio *</label>
+              <input type="date" id="tar-finicio" style="text-transform:none">
+            </div>
+            <div class="field">
+              <label>Fecha fin (dejar vacío = sin vencimiento)</label>
+              <input type="date" id="tar-ffin" style="text-transform:none">
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" onclick="guardarTarifa()">💾 Guardar tarifa</button>
+            <button class="btn btn-ghost" onclick="loadTarifas()">↻ Recargar</button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <div class="table-head"><span class="table-title">Tarifas configuradas</span></div>
+          <div class="table-scroll">
+            <table>
+              <thead><tr>
+                <th>Tipo</th><th>Nombre</th><th>Cobro</th><th>Valor</th><th>Vigencia</th><th>Estado</th>
+              </tr></thead>
+              <tbody id="tarifas-table">
+                <tr><td colspan="6" class="td-empty">Cargando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── USUARIOS (ADMIN) ────────────────────────────────────────────── -->
+      <div class="page" id="page-usuarios">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Gestión de Usuarios</div>
+            <div class="page-sub">Control de acceso y roles del sistema</div>
+          </div>
+        </div>
+        <div id="usr-alert"></div>
+
+        <div class="form-card">
+          <div class="form-card-title">➕ Crear usuario</div>
+          <div class="form-grid">
+            <div class="field">
+              <label>Nombre completo *</label>
+              <input type="text" id="usr-nombre" placeholder="Ej: Juan García" style="text-transform:none">
+            </div>
+            <div class="field">
+              <label>Correo electrónico *</label>
+              <input type="email" id="usr-email" placeholder="correo@ejemplo.com" style="text-transform:none">
+            </div>
+            <div class="field">
+              <label>Contraseña *</label>
+              <input type="password" id="usr-pass" placeholder="Mínimo 4 caracteres" style="text-transform:none">
+            </div>
+            <div class="field">
+              <label>Rol *</label>
+              <select id="usr-rol">
+                <option value="operario">Operario</option>
+                <option value="admin">Administrador</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" onclick="crearUsuario()">➕ Crear usuario</button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <div class="table-head"><span class="table-title">Usuarios del sistema</span></div>
+          <div class="table-scroll">
+            <table>
+              <thead><tr>
+                <th>Nombre</th><th>Correo</th><th>Rol</th><th>Estado</th><th>Acciones</th>
+              </tr></thead>
+              <tbody id="usuarios-table">
+                <tr><td colspan="5" class="td-empty">Cargando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── REPORTES (ADMIN) ────────────────────────────────────────────── -->
+      <div class="page" id="page-reportes">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Reportes</div>
+            <div class="page-sub">Análisis de ingresos y flujo vehicular</div>
+          </div>
+        </div>
+        <div id="rep-alert"></div>
+
+        <!-- Filtros -->
+        <div class="form-card">
+          <div class="form-card-title">🗓 Filtrar por fecha</div>
+          <div class="filters">
+            <div class="field">
+              <label>Desde</label>
+              <input type="date" id="rep-desde" style="text-transform:none">
+            </div>
+            <div class="field">
+              <label>Hasta</label>
+              <input type="date" id="rep-hasta" style="text-transform:none">
+            </div>
+            <button class="btn btn-primary" onclick="loadReportes()">🔍 Generar reporte</button>
+          </div>
+        </div>
+
+        <!-- KPIs -->
+        <div class="grid-4" style="margin-bottom:24px">
+          <div class="kpi kpi-green">
+            <div class="kpi-label">Ingresos totales</div>
+            <div class="kpi-val" id="rep-total">—</div>
+            <div class="kpi-sub">En el período</div>
+          </div>
+          <div class="kpi kpi-blue">
+            <div class="kpi-label">Vehículos atendidos</div>
+            <div class="kpi-val" id="rep-count">—</div>
+            <div class="kpi-sub">Salidas finalizadas</div>
+          </div>
+          <div class="kpi kpi-amber">
+            <div class="kpi-label">Promedio por vehículo</div>
+            <div class="kpi-val" id="rep-avg">—</div>
+            <div class="kpi-sub">Valor promedio cobrado</div>
+          </div>
+          <div class="kpi kpi-purple">
+            <div class="kpi-label">Tiempo promedio</div>
+            <div class="kpi-val" id="rep-avgmin">—</div>
+            <div class="kpi-sub">Por vehículo</div>
+          </div>
+        </div>
+
+        <!-- Por tipo -->
+        <div class="form-card" style="margin-bottom:20px">
+          <div class="form-card-title">📊 Ingresos por tipo de vehículo</div>
+          <div id="rep-tipo" style="padding-top:4px">—</div>
+        </div>
+
+        <!-- Historial -->
+        <div class="table-wrap">
+          <div class="table-head"><span class="table-title">Historial del período</span></div>
+          <div class="table-scroll">
+            <table>
+              <thead><tr>
+                <th>Placa</th><th>Tipo</th><th>Entrada</th><th>Salida</th><th>Tiempo</th><th>Valor</th>
+              </tr></thead>
+              <tbody id="rep-hist-table">
+                <tr><td colspan="6" class="td-empty">Selecciona un período y genera el reporte</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </main><!-- /main -->
+  </div><!-- /layout -->
+</div><!-- /app-screen -->
+
+<!-- ── TICKET MODAL ────────────────────────────────────────────────────────── -->
+<div class="modal-bg" id="ticket-modal">
+  <div class="modal">
+    <div class="modal-title">🎫 Ticket generado</div>
+    <div class="ticket-paper" id="ticket-content"></div>
+    <div style="display:flex;gap:10px;margin-top:8px">
+      <button class="btn btn-primary" style="flex:1" onclick="closeModal('ticket-modal')">✔ Listo</button>
+      <button class="btn btn-ghost" onclick="printTicket()">🖨 Imprimir</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── WHATSAPP FAB ────────────────────────────────────────────────────────── -->
+<a class="wa-fab" href="https://wa.me/573001234567?text=Hola%2C%20tengo%20una%20pregunta%20sobre%20el%20parqueadero"
+   target="_blank" rel="noopener" title="Soporte por WhatsApp">💬</a>
+
+<script src="/js/app.js"></script>
+</body>
+</html>
