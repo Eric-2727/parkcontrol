@@ -78,7 +78,7 @@ router.put('/:id', requireAdmin, async (req, res) => {
 // DELETE /api/usuarios/:id  (desactivar)
 router.delete('/:id', requireAdmin, async (req, res) => {
   try {
-    if (parseInt(req.params.id) === req.session.user.id) {
+    if (parseInt(req.params.id) === req.user.id) {
       return res.status(400).json({ error: 'No puedes desactivar tu propio usuario.' });
     }
     await db.query(`UPDATE usuarios SET activo = 0 WHERE id = ?`, [req.params.id]);

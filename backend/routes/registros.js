@@ -167,7 +167,7 @@ router.post('/entrada', requireAuth, async (req, res) => {
     const [result] = await conn.query(
       `INSERT INTO registros (placa, tipo_vehiculo_id, espacio_id, tarifa_id, usuario_entrada_id)
        VALUES (?, ?, ?, ?, ?)`,
-      [placaUp, tipoVehiculo.id, espacio.id, tarifaId, req.session.user.id]
+      [placaUp, tipoVehiculo.id, espacio.id, tarifaId, req.user.id]
     );
 
     // Marcar espacio como ocupado
@@ -281,7 +281,7 @@ router.post('/salida', requireAuth, async (req, res) => {
         estado             = 'FINALIZADO',
         usuario_salida_id  = ?
       WHERE id = ?
-    `, [ahora, minutos, costo, descuento_pct, es_cortesia ? 1 : 0, req.session.user.id, reg.id]);
+    `, [ahora, minutos, costo, descuento_pct, es_cortesia ? 1 : 0, req.user.id, reg.id]);
 
     // Liberar espacio
     await conn.query(`UPDATE espacios SET disponible = 1 WHERE id = ?`, [reg.espacio_id]);
